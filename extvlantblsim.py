@@ -28,8 +28,11 @@ class VlanTagOp:
             val = getattr(self, name)
 
             match name.split("_"):
-                case [*_, "prio"]:
+                case ["f", _, "prio"]:
                     if val not in {*range(9), 14, 15}:
+                        raise ValueError(f"'{name}' invalid priority: {val}")
+                case ["t", _, "prio"]:
+                    if val not in {*range(11), 15}:
                         raise ValueError(f"'{name}' invalid priority: {val}")
                 case ["f", _, "vid"]:
                     if not (0 <= val <= 4096):
