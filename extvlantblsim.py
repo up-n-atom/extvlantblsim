@@ -5,20 +5,20 @@ from typing import List
 
 @dataclass(frozen=True)
 class VlanTagOp:
-    f_out_prio: int;
-    f_out_vid: int;
+    f_out_prio: int
+    f_out_vid: int
     f_out_tpid: int
-    f_in_prio: int;
-    f_in_vid: int;
+    f_in_prio: int
+    f_in_vid: int
     f_in_tpid: int
-    f_eth_type: int;
+    f_eth_type: int
     f_ext_crit: int
     tag_rem: int
-    t_out_prio: int;
-    t_out_vid: int;
+    t_out_prio: int
+    t_out_vid: int
     t_out_tpid: int
-    t_in_prio: int;
-    t_in_vid: int;
+    t_in_prio: int
+    t_in_vid: int
     t_in_tpid: int
     idx: int
 
