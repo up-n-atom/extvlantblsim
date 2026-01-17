@@ -35,19 +35,19 @@ class VlanTagOp:
                     if val not in {*range(11), 15}:
                         raise ValueError(f"'{name}' invalid priority: {val}")
                 case ["f", _, "vid"]:
-                    if not (0 <= val <= 4096):
+                    if not 0 <= val <= 4096:
                         raise ValueError(f"'{name}' out of range: {val}")
                 case ["t", _, "vid"]:
-                    if not (0 <= val <= 4097):
+                    if not 0 <= val <= 4097:
                         raise ValueError(f"'{name}' out of range: {val}")
                 case ["f", _, "tpid"]:
                     if val not in (0, 4, 5, 6, 7):
                         raise ValueError(f"'{name}' invalid enum: {val}")
                 case ["t", _, "tpid"]:
-                    if not  (0 <= val <= 7):
+                    if not  0 <= val <= 7:
                         raise ValueError(f"'{name}' invalid enum: {val}")
                 case ["tag", "rem"]:
-                    if not (0 <= val <= 3):
+                    if not 0 <= val <= 3:
                         raise ValueError(f"'{name}' invalid enum: {val}")
                 case _:
                     continue
