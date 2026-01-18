@@ -51,6 +51,12 @@ class VlanTagOp:
                 case ["t", _, "tpid"]:
                     if not  0 <= val <= 7:
                         raise ValueError(f"'{name}' invalid enum: {val}")
+                case ["f", "ext", "crit"]:
+                    if not 0 <= val <= 2:
+                        raise ValueError(f"'{name}' invalid enum: {val}")
+                case ["f", "eth", "type"]:
+                    if not 0 <= val <= 5:
+                        raise ValueError(f"'{name}' invalid enum: {val}")
                 case ["tag", "rem"]:
                     if not 0 <= val <= 3:
                         raise ValueError(f"'{name}' invalid enum: {val}")
