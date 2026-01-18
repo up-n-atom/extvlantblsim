@@ -40,10 +40,10 @@ class VlanTagOp:
                     if val not in {*range(11), 15}:
                         raise ValueError(f"'{name}' invalid priority: {val}")
                 case ["f", _, "vid"]:
-                    if not 0 <= val <= 4096:
+                    if not (0 <= val <= 4094 or val == 4096):
                         raise ValueError(f"'{name}' out of range: {val}")
                 case ["t", _, "vid"]:
-                    if not 0 <= val <= 4097:
+                    if not (0 <= val <= 4094 or val in (4096, 4097)):
                         raise ValueError(f"'{name}' out of range: {val}")
                 case ["f", _, "tpid"]:
                     if val not in (0, 4, 5, 6, 7):
