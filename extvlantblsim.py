@@ -97,7 +97,7 @@ class VlanTagOpTable:
         self.ops = sorted(ops or [], key=lambda op: (1 if op.is_default else 0, astuple(op)[:8]))
 
     @classmethod
-    def from_stream(cls, stream) -> None:
+    def from_stream(cls, stream) -> 'VlanTagOpTable':
         ops = []
 
         for line in stream:
