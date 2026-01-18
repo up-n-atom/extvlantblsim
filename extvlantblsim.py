@@ -2,8 +2,63 @@
 
 import sys
 import argparse
-from dataclasses import dataclass, fields, astuple
+from dataclasses import dataclass, fields, field, astuple
 from typing import List, Iterator, Union
+
+
+@dataclass(frozen=True)
+class VlanTag:
+    vid: int
+    pcp: int = 0
+    tpid: int = 0x8100
+    dei: int = 0
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.vid <= 4094:
+            raise ValueError(f"VID must be 0-4094: {self.vid}")
+
+        if not 0 <= self.pcp <= 7:
+            raise ValueError(f"PCP must be 0-7: {self.pcp}")
+
+
+@dataclass(frozen=True)
+class EthFrame:
+    tags: List[VlanTag] = field(default_factory=list)
+
+    @classmethod
+    def raw(cls) -> 'EthFrame':
+        return cls(tags=[])
+
+    @classmethod
+    def from_single_tag(cls, vlan: int, pcp: int = 0) -> 'EthFrame':
+        return cls(tags=[VlanTag(vid=vlan, pcp=pcp)])
+
+    @classmethod
+    def from_double_tag(cls, outer_vid: int, inner_vid: int, outer_pcp: int = 0, inner_pcp: int = 0) -> 'EthFrame':
+        return cls(tags=[
+            VlanTag(vid=outer_vid, pcp=outer_pcp),
+            VlanTag(vid=inner_vid, pcp=inner_pcp)
+        ])
+
+    @classmethod
+    def from_priority(cls, pcp: int = 0) -> 'EthFrame':
+        return cls.from_single_tag(0, pcp)
+
+    @property
+    def is_raw(self) -> bool:
+        return len(self.tags) == 0
+
+    @property
+    def inner_tag(self) -> Optional[VlanTag]:
+        # Inner tag is the last one in the header sequence
+        # Negative indexing prevents IndexError if the list is empty.
+        return self.tags[-1] if self.tags else None
+
+    @property
+    def outer_tag(self) -> Optional[VlanTag]:
+        # Check length to ensure we don't accidentally grab the inner tag of a single-tagged frame
+        return self.tags[-2] if len(self.tags) >= 2 else None
+
 
 
 @dataclass(frozen=True)
