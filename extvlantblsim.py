@@ -16,8 +16,8 @@ class VlanTagOp:
     f_in_prio: int
     f_in_vid: int
     f_in_tpid: int
-    f_eth_type: int
     f_ext_crit: int
+    f_eth_type: int
     # treatment fields
     tag_rem: int
     t_out_prio: int
@@ -102,6 +102,7 @@ class VlanTagOpTable:
 
         for line in stream:
             op = line.split()
+
             if len(op) == 15 and all(map(lambda x: x.isdigit(), op)):
                 vals = [int(x) for x in op]
 
@@ -109,6 +110,9 @@ class VlanTagOpTable:
                 # 8191 is an invalid VID, confirming bits were all 1s (normalized).
                 if tuple(vals[8:]) == (3, 15, 8191, 7, 15, 8191, 7):
                     continue
+
+                # Fix order to match bit-stream
+                vals[6], vals[7] = vals[7], vals[6]
 
                 ops.append(VlanTagOp(*vals))
 
