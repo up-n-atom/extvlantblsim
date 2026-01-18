@@ -6,7 +6,6 @@ from dataclasses import dataclass, fields, astuple
 from typing import List
 
 
-
 @dataclass(frozen=True)
 class VlanTagOp:
     # CAUTION: field order must match raw bit-stream for sorting.
