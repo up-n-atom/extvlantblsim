@@ -8,7 +8,7 @@ from typing import List
 
 @dataclass(frozen=True)
 class VlanTagOp:
-    # CAUTION: field order must match raw bit-stream for sorting.
+    # CAUTION: field order must match bit-stream for sorting
     # filter fields
     f_out_prio: int
     f_out_vid: int
@@ -90,10 +90,10 @@ class VlanTagOp:
 
 class VlanTagOpTable:
     def __init__(self, ops: List[VlanTagOp] = None) -> None:
-        # CAUTION: VlanTagOp field order must match bit-stream for sorting.
+        # CAUTION: VlanTagOp field order must match bit-stream for sorting
         # Slicing the first 8 fields is a 'lossy' sort key because the upstream parser discards the
-        # padding/reserved bits. Assume the bits are normalized across rules.
-        # Default rules last.
+        # padding/reserved bits (assume the bits are normalized across rules)
+        # Default rules last
         self.ops = sorted(ops or [], key=lambda op: (1 if op.is_default else 0, astuple(op)[:8]))
 
     @classmethod
@@ -106,8 +106,8 @@ class VlanTagOpTable:
             if len(op) == 15 and all(map(lambda x: x.isdigit(), op)):
                 vals = [int(x) for x in op]
 
-                # OLT deletion check (last 8 bytes = 0xFF).
-                # 8191 is an invalid VID, confirming bits were all 1s (normalized).
+                # OLT deletion check (last 8 bytes = 0xFF)
+                # 8191 is an invalid VID, confirming bits were all 1s (normalized)
                 if tuple(vals[8:]) == (3, 15, 8191, 7, 15, 8191, 7):
                     continue
 
