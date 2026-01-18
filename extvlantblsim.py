@@ -3,7 +3,7 @@
 import sys
 import argparse
 from dataclasses import dataclass, fields, astuple
-from typing import List
+from typing import List, Iterator, Union
 
 
 @dataclass(frozen=True)
@@ -94,7 +94,16 @@ class VlanTagOpTable:
         # Slicing the first 8 fields is a 'lossy' sort key because the upstream parser discards the
         # padding/reserved bits (assume the bits are normalized across rules)
         # Default rules last
-        self.ops = sorted(ops or [], key=lambda op: (1 if op.is_default else 0, astuple(op)[:8]))
+        self._ops = sorted(ops or [], key=lambda op: (1 if op.is_default else 0, astuple(op)[:8]))
+
+    def __getitem__(self, index: Union[int, slice]) -> Union[VlanTagOp, List[VlanTagOp]]:
+        return self._ops[index]
+
+    def __len__(self) -> int:
+        return len(self._ops)
+
+    def __iter__(self) -> Iterator[VlanTagOp]:
+        return iter(self._ops)
 
     @classmethod
     def from_stream(cls, stream) -> 'VlanTagOpTable':
@@ -129,11 +138,11 @@ def main() -> None:
     if args.infile is not sys.stdin:
         args.infile.close()
 
-    if not table.ops:
+    if not table:
         print("No valid G.988 extended VLAN tagging operation table data found.")
         return
 
-    for op in table.ops:
+    for op in table:
         print(op)
 
 
