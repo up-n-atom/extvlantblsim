@@ -58,15 +58,15 @@ class VlanTagOp:
                     continue
 
     @property
-    def is_zero_tag(self) -> bool:
+    def is_untagged_filter(self) -> bool:
         return self.f_out_prio == 15 and self.f_in_prio == 15
 
     @property
-    def is_single_tag(self) -> bool:
+    def is_single_tagged_filter(self) -> bool:
         return self.f_out_prio == 15 and self.f_in_prio != 15
 
     @property
-    def is_double_tag(self) -> bool:
+    def is_double_tagged_filter(self) -> bool:
         return self.f_out_prio != 15 and self.f_in_prio != 15
 
     @property
@@ -80,12 +80,16 @@ class VlanTagOp:
         )
 
     @property
-    def is_transparent(self) -> bool:
+    def is_transparent_treatment(self) -> bool:
         return (
             self.tag_rem == 0 and
             self.t_out_prio == 15 and
             self.t_in_prio == 15
         )
+
+    @property
+    def is_drop_treatment(self) -> bool:
+        return self.tag_rem == 3
 
 
 class VlanTagOpTable:
