@@ -59,33 +59,90 @@ class VlanTagOp:
 
     @property
     def is_untagged_filter(self) -> bool:
-        return self.f_out_prio == 15 and self.f_in_prio == 15
+        return (
+            self.f_out_prio == 15 and
+            self.f_in_prio == 15
+        )
 
     @property
     def is_single_tagged_filter(self) -> bool:
-        return self.f_out_prio == 15 and self.f_in_prio != 15
+        return (
+            self.f_out_prio == 15 and
+            self.f_in_prio != 15
+        )
 
     @property
     def is_double_tagged_filter(self) -> bool:
-        return self.f_out_prio != 15 and self.f_in_prio != 15
+        return self.f_out_prio != 15
 
     @property
-    def is_default(self) -> bool:
+    def is_untagged_default(self) -> bool:
         return (
-            self.f_out_prio in (14, 15) and
-            self.f_out_vid == 4096 and
-            self.f_in_prio in (14, 15) and
-            self.f_in_vid == 4096 and
+            self.f_out_prio == 15 and
+            self.f_out_vid  == 4096 and
+            self.f_in_prio  == 15 and
+            self.f_in_vid   == 4096 and
             self.f_ext_crit == 0
         )
 
     @property
-    def is_transparent_treatment(self) -> bool:
+    def is_single_tagged_default(self) -> bool:
         return (
-            self.tag_rem == 0 and
-            self.t_out_prio == 15 and
-            self.t_in_prio == 15
+            self.f_out_prio == 15 and
+            self.f_out_vid  == 4096 and
+            self.f_in_prio  == 14 and
+            self.f_in_vid   == 4096 and
+            self.f_ext_crit == 0
         )
+
+    @property
+    def is_double_tagged_default(self) -> bool:
+        return (
+            self.f_out_prio == 14 and
+            self.f_out_vid  == 4096 and
+            self.f_in_prio  == 14 and
+            self.f_in_vid   == 4096 and
+            self.f_ext_crit == 0
+        )
+
+    @property
+    def is_default(self) -> bool:
+        return (
+            self.is_untagged_default or
+            self.is_single_tagged_default or
+            self.is_double_tagged_default
+        )
+
+    @property
+    def is_transparent_treatment(self) -> bool:
+        if self.tag_rem != 0:
+            return False
+
+        if self.is_untagged_filter:
+            return (
+                self.t_out_prio == 15 and  # Do not add outer
+                self.t_in_prio  == 15      # Do not add inner
+            )
+
+        if self.is_single_tagged_filter:
+            return (
+                self.t_out_prio == 15 and   # Don't add an extra outer tag
+                self.t_in_prio == 8 and     # Copy Inner Prio
+                self.t_in_vid == 4096 and   # Copy Inner VID
+                self.t_in_tpid == 0         # Copy Inner TPID/DEI
+            )
+
+        if self.is_double_tagged_filter:
+            return (
+                self.t_out_prio == 9 and    # Copy Outer Prio
+                self.t_out_vid == 4097 and  # Copy Outer VID
+                self.t_out_tpid == 1 and    # Copy Outer TPID/DEI
+                self.t_in_prio == 8 and     # Copy Inner Prio
+                self.t_in_vid == 4096 and   # Copy Inner VID
+                self.t_in_tpid == 0         # Copy Inner TPID/DEI
+            )
+
+        return False
 
     @property
     def is_drop_treatment(self) -> bool:
