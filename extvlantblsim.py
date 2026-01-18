@@ -1,10 +1,16 @@
+#!/usr/bin/env python3
+
 import sys
 import argparse
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, astuple
 from typing import List
+
+
 
 @dataclass(frozen=True)
 class VlanTagOp:
+    # CAUTION: field order must match raw bit-stream for sorting.
+    # filter fields
     f_out_prio: int
     f_out_vid: int
     f_out_tpid: int
@@ -13,6 +19,7 @@ class VlanTagOp:
     f_in_tpid: int
     f_eth_type: int
     f_ext_crit: int
+    # treatment fields
     tag_rem: int
     t_out_prio: int
     t_out_vid: int
@@ -20,7 +27,6 @@ class VlanTagOp:
     t_in_prio: int
     t_in_vid: int
     t_in_tpid: int
-    idx: int
 
     def __post_init__(self) -> None:
         for field in fields(self):
@@ -52,10 +58,44 @@ class VlanTagOp:
                 case _:
                     continue
 
+    @property
+    def is_zero_tag(self) -> bool:
+        return self.f_out_prio == 15 and self.f_in_prio == 15
+
+    @property
+    def is_single_tag(self) -> bool:
+        return self.f_out_prio == 15 and self.f_in_prio != 15
+
+    @property
+    def is_double_tag(self) -> bool:
+        return self.f_out_prio != 15 and self.f_in_prio != 15
+
+    @property
+    def is_default(self) -> bool:
+        return (
+            self.f_out_prio in (14, 15) and
+            self.f_out_vid == 4096 and
+            self.f_in_prio in (14, 15) and
+            self.f_in_vid == 4096 and
+            self.f_ext_crit == 0
+        )
+
+    @property
+    def is_transparent(self) -> bool:
+        return (
+            self.tag_rem == 0 and
+            self.t_out_prio == 15 and
+            self.t_in_prio == 15
+        )
+
 
 class VlanTagOpTable:
     def __init__(self, ops: List[VlanTagOp] = None) -> None:
-        self.ops = ops or []
+        # CAUTION: VlanTagOp field order must match bit-stream for sorting.
+        # Slicing the first 8 fields is a 'lossy' sort key because the upstream parser discards the
+        # padding/reserved bits. Assume the bits are normalized across rules.
+        # Default rules last.
+        self.ops = sorted(ops or [], key=lambda op: (1 if op.is_default else 0, astuple(op)[:8]))
 
     @classmethod
     def from_stream(cls, stream) -> None:
@@ -63,9 +103,15 @@ class VlanTagOpTable:
 
         for line in stream:
             op = line.split()
-
             if len(op) == 15 and all(map(lambda x: x.isdigit(), op)):
-                ops.append(VlanTagOp(*map(int, op), idx=len(ops) + 1))
+                vals = [int(x) for x in op]
+
+                # OLT deletion check (last 8 bytes = 0xFF).
+                # 8191 is an invalid VID, confirming bits were all 1s (normalized).
+                if tuple(vals[8:]) == (3, 15, 8191, 7, 15, 8191, 7):
+                    continue
+
+                ops.append(VlanTagOp(*vals))
 
         return cls(ops)
 
