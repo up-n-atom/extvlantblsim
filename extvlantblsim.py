@@ -217,6 +217,51 @@ class VlanTagOp:
     def is_drop_treatment(self) -> bool:
         return self.tag_rem == 3
 
+    def matches_filter(self, frame: EthFrame, input_tpid: int = 0x8100) -> bool:
+        def check_tpid(tpid_dei: int, tag: VlanTag) -> bool:
+            match tpid_dei:
+                case 0:
+                    return True
+                case 4:
+                    return tag.tpid == 0x8100
+                case 5:
+                    return tag.tpid == input_tpid
+                case 6:
+                    return tag.tpid == input_tpid and tag.dei == 0
+                case 7:
+                    return tag.tpid == input_tpid and tag.dei == 1
+                case _:
+                    return False
+
+        if frame.is_raw and not self.is_untagged_filter:
+            return False
+        if frame.is_single_tagged and not self.is_single_tagged_filter:
+            return False
+        if frame.is_double_tagged and not self.is_double_tagged_filter:
+            return False
+
+        # Outer Tag Match
+        if frame.is_double_tagged:
+            tag = frame.outer_tag
+            if not check_tpid(self.f_out_tpid, tag):
+                return False
+            if self.f_out_prio < 8 and self.f_out_prio != tag.pcp:
+                return False
+            if self.f_out_vid != 4096 and self.f_out_vid != tag.vid:
+                return False
+
+        # Inner Tag Match
+        if not frame.is_raw:
+            tag = frame.inner_tag
+            if not check_tpid(self.f_in_tpid, tag):
+                return False
+            if self.f_in_prio < 8 and self.f_in_prio != tag.pcp:
+                return False
+            if self.f_in_vid != 4096 and self.f_in_vid != tag.vid:
+                return False
+
+        return True
+
 
 class VlanTagOpTable:
     def __init__(self, ops: List[VlanTagOp] = None) -> None:
