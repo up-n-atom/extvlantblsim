@@ -68,7 +68,6 @@ class EthFrame:
         return self.tags[-2] if len(self.tags) >= 2 else None
 
 
-
 @dataclass(frozen=True)
 class VlanTagOp:
     # CAUTION: field order must match bit-stream for sorting
