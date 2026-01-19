@@ -49,6 +49,14 @@ class EthFrame:
         return len(self.tags) == 0
 
     @property
+    def is_single_tagged(self) -> bool:
+        return len(self.tags) == 1
+
+    @property
+    def is_double_tagged(self) -> bool:
+        return len(self.tags) >= 2
+
+    @property
     def inner_tag(self) -> Optional[VlanTag]:
         # Inner tag is the last one in the header sequence
         # Negative indexing prevents IndexError if the list is empty.
