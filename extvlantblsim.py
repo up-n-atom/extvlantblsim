@@ -378,7 +378,8 @@ def main() -> None:
     services = {0: "HSI", 5: "VOIP", 4: "IPTV"}
 
     for prio, desc in services.items():
-        print(desc, VlanClassifier.rank_vlan_from_priority(table, prio)[0]["vid"], sep=": ")
+        rankings = VlanClassifier.rank_vlan_from_priority(table, prio)
+        print(desc, rankings[0]["vid"] if rankings else "no single-tagged rules found", sep=": ")
 
 
 if __name__ == "__main__":
