@@ -3,7 +3,7 @@
 import sys
 import argparse
 from dataclasses import dataclass, fields, field, astuple
-from typing import List, Iterator, Union
+from typing import List, Dict, Iterator, Union, Any
 
 
 @dataclass(frozen=True)
@@ -302,6 +302,62 @@ class VlanTagOpTable:
         return cls(ops)
 
 
+class VlanClassifier:
+    @staticmethod
+    def rank_vlan_from_priority(table: VlanTagOpTable, target_prio: int = 0) -> List[Dict[str, Any]]:
+        def calc_likelihood(op):
+            likelihood = 0.5
+            weight = 0.40 # Default weight for treatment copy priority (8)
+
+            # Prioritize standard 802.1Q VLAN range (1-4094), excluding priority-tagged
+            likelihood *= 0.95 if 1 <= op.f_in_vid <= 4094 else 0.05
+
+            # Ingress filter analysis
+            match op.f_in_prio:
+                case p if p == target_prio:
+                    likelihood *= 0.90
+                    weight = 0.70  # Upgrade trust for direct match
+                case 8:
+                    likelihood *= 0.50 if target_prio == 0 else 0.10
+                case _:
+                    likelihood *= 0.05
+
+            # Egress treatment analysis
+            match op.t_in_prio:
+                case p if p == target_prio:
+                    likelihood *= 0.999 if target_prio != 0 else 0.95
+                case 8:
+                    likelihood *= weight if target_prio != 0 else 0.85
+                case _:
+                    likelihood *= 0.0001 # Disqualifier
+
+            # Bonus for VID translation
+            likelihood *= 0.85 if op.t_in_vid != op.f_in_vid and op.t_in_vid <= 4094 else 0.82
+
+            return likelihood
+
+        results = []
+        total_lik = 0.0
+
+        for i, op in enumerate(table):
+            if op.is_single_tagged_filter and not (op.is_single_tagged_default or op.is_drop_treatment):
+                total_lik += (likelihood := calc_likelihood(op))
+
+                results.append({
+                    "vid": op.f_in_vid,
+                    "likelihood": likelihood,
+                    "index": i
+                })
+
+        # Normalize
+        for r in results:
+            r["confidence"] = round((r["likelihood"] / total_lik) * 100, 2) if total_lik > 0 else 0.0
+
+        results.sort(key=lambda x: x["likelihood"], reverse=True)
+
+        return results
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="G.988 Extended VLAN Tagging Operation Simulator")
     parser.add_argument("infile", nargs="?", type=argparse.FileType("r"), default=sys.stdin)
@@ -318,6 +374,11 @@ def main() -> None:
 
     for op in table:
         print(op)
+
+    services = {0: "HSI", 5: "VOIP", 4: "IPTV"}
+
+    for prio, desc in services.items():
+        print(desc, VlanClassifier.rank_vlan_from_priority(table, prio)[0]["vid"], sep=": ")
 
 
 if __name__ == "__main__":
