@@ -3,7 +3,7 @@
 import sys
 import argparse
 from dataclasses import dataclass, fields, field, astuple
-from typing import Tuple, List, Dict, Iterator, Union, Any
+from typing import Tuple, List, Dict, Iterator, Optional, Union, Any
 
 
 @dataclass(frozen=True)
