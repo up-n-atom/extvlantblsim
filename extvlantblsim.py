@@ -20,10 +20,23 @@ class VlanTag:
         if not 0 <= self.pcp <= 7:
             raise ValueError(f"PCP must be 0-7: {self.pcp}")
 
+    def __repr__(self) -> str:
+        return f"[VID: {self.vid:>4}, PCP: {self.pcp}, TPID: 0x{self.tpid:04x}]"
+
+    __str__ = __repr__
+
 
 @dataclass(frozen=True)
 class EthFrame:
     tags: Tuple[VlanTag, ...] = field(default_factory=tuple)
+
+    def __repr__(self) -> str:
+        return "EthFrame(Untagged)" if not self.tags else f"EthFrame(Tags: {', '.join(repr(t) for t in self.tags)})"
+
+    __str__ = __repr__
+
+    def __format__(self, format_spec: str) -> str:
+        return format(str(self), format_spec)
 
     @classmethod
     def raw(cls) -> 'EthFrame':
