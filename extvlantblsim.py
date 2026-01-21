@@ -3,7 +3,7 @@
 import sys
 import argparse
 from dataclasses import dataclass, fields, field, astuple
-from typing import List, Dict, Iterator, Union, Any
+from typing import Tuple, List, Dict, Iterator, Union, Any
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class VlanTag:
 
 @dataclass(frozen=True)
 class EthFrame:
-    tags: List[VlanTag] = field(default_factory=list)
+    tags: Tuple[VlanTag, ...] = field(default_factory=tuple)
 
     @classmethod
     def raw(cls) -> 'EthFrame':
