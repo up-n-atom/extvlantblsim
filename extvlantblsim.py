@@ -470,14 +470,40 @@ def main() -> None:
         print("No valid G.988 extended VLAN tagging operation table data found.")
         return
 
-    for op in table:
-        print(op)
+    print("-"*120)
+    print(f"{'VLAN TAGGING OPERATION TABLE':^120}")
+    print("-"*120)
+    for i, op in enumerate(table):
+        print(f"{i:<2}", f"{op}")
 
-    services = {0: "HSI", 5: "VOIP", 4: "IPTV"}
+    services = {
+        0: "HSI",
+        5: "VOIP",
+        4: "IPTV"
+    }
 
+    frames = {
+        "Untagged": EthFrame.raw(),
+        "Priority-Tagged": EthFrame.from_priority(0),
+    }
+
+    print("-"*120)
+    print(f"{'SERVICE VLAN':^120}")
+    print("-"*120)
     for prio, desc in services.items():
         rankings = VlanClassifier.rank_vlan_from_priority(table, prio)
-        print(desc, rankings[0]["vid"] if rankings else "no single-tagged rules found", sep=": ")
+        print(f"{desc:<5}", f"{rankings[0]['vid']:<4}" if rankings else "N/A")
+        if prio == 0 and rankings:
+            frames["Service-Tagged"] = EthFrame.from_single_tag(rankings[0]["vid"])
+
+    print("-"*120)
+    print(f"{'ROUTER CONFIGURATION TEST':^120}")
+    print("-"*120)
+    print(f"{'WAN CONFIG':<15} {'UNI FRAME':<50} PON FRAME")
+    print("-"*120)
+    for conf, uni_frame in frames.items():
+        pon_frame = table.process_frame(uni_frame)
+        print(f"{conf:<15}", f"{uni_frame!s:<50}", f"{pon_frame!s}" if pon_frame else "DISCARDED")
 
 
 if __name__ == "__main__":
