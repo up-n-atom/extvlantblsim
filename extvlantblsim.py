@@ -138,6 +138,16 @@ class VlanTagOp:
                 case _:
                     continue
 
+    def __repr__(self) -> str:
+        vals = astuple(self)
+
+        f = " ".join(f"{v:>4}" for v in vals[:8])
+        t = " ".join(f"{v:>4}" for v in vals[8:])
+
+        return f"Filter:[{f}] -> Treatment:[{t}]"
+
+    __str__ = __repr__
+
     @property
     def is_untagged_filter(self) -> bool:
         return (
