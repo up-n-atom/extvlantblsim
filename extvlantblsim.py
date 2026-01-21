@@ -261,6 +261,74 @@ class VlanTagOp:
 
         return True
 
+    def transform(self, frame: EthFrame, output_tpid: int = 0x8100) -> EthFrame:
+        def resolve_pcp(prio: int) -> int:
+            match prio:
+                case p if 0 <= p <= 7:
+                    return p
+                case 8: # Copy from inner priority of received frame
+                    return frame.inner_tag.pcp if frame.inner_tag else 0
+                case 9: # Copy from outer priority of received frame
+                    return frame.outer_tag.pcp if frame.outer_tag else 0
+                case 10: # DSCP to P-bit mapping (Defaulting to 0)
+                    return 0
+                case _:
+                    return 0
+
+        def resolve_vid(vid: int) -> int:
+            match vid:
+                case v if 0 <= v <= 4094:
+                    return v
+                case 4096: # Copy from inner VID of received frame
+                    return frame.inner_tag.vid if frame.inner_tag else 0
+                case 4097: # Copy from outer VID of received frame
+                    return frame.outer_tag.vid if frame.outer_tag else 0
+                case _:
+                    return 0
+
+        def resolve_tpid_dei(tpid_dei: int) -> tuple[int, int]:
+            match tpid_dei:
+                case 0: # Copy TPID/DEI from inner
+                    return (frame.inner_tag.tpid, frame.inner_tag.dei) if frame.inner_tag else (0x8100, 0)
+                case 1: # Copy TPID/DEI from outer
+                    return (frame.outer_tag.tpid, frame.outer_tag.dei) if frame.outer_tag else (0x8100, 0)
+                case 2: # Use Output TPID, Copy DEI from inner
+                    return (output_tpid, frame.inner_tag.dei if frame.inner_tag else 0)
+                case 3: # Use Output TPID, Copy DEI from outer
+                    dei = frame.outer_tag.dei if frame.outer_tag else 0
+                    return (output_tpid, dei)
+                case 4: # Set TPID 0x8100 (Implicit DEI=0 or preserved)
+                    return (0x8100, 0)
+                case 6: # Use Output TPID, Set DEI = 0
+                    return (output_tpid, 0)
+                case 7: # Use Output TPID, Set DEI = 1
+                    return (output_tpid, 1)
+                case _: # Reserved or fallback
+                    return (output_tpid, 0)
+
+        if self.is_drop_treatment:
+            return None
+
+        tags = []
+
+        # Outer Treatment (S-Tag)
+        if self.t_out_prio != 15:
+            tags.append(VlanTag(
+                resolve_vid(self.t_out_vid),
+                resolve_pcp(self.t_out_prio),
+                *resolve_tpid_dei(self.t_out_tpid)
+            ))
+
+        # Inner Treatment (C-Tag)
+        if self.t_in_prio != 15:
+            tags.append(VlanTag(
+                resolve_vid(self.t_in_vid),
+                resolve_pcp(self.t_in_prio),
+                *resolve_tpid_dei(self.t_in_tpid)
+            ))
+
+        return EthFrame(tags=tuple(tags) if tags else frame.tags[self.tag_rem:])
+
 
 class VlanTagOpTable:
     def __init__(self, ops: List[VlanTagOp] = None) -> None:
@@ -300,6 +368,13 @@ class VlanTagOpTable:
                 ops.append(VlanTagOp(*vals))
 
         return cls(ops)
+
+    def process_frame(self, frame: EthFrame) -> Optional[EthFrame]:
+        for op in self:
+            if op.matches_filter(frame):
+                return op.transform(frame)
+
+        return None
 
 
 class VlanClassifier:
