@@ -124,7 +124,7 @@ class VlanTagOp:
                     if val not in (0, 4, 5, 6, 7):
                         raise ValueError(f"'{name}' invalid enum: {val}")
                 case ["t", _, "tpid"]:
-                    if not  0 <= val <= 7:
+                    if not 0 <= val <= 7:
                         raise ValueError(f"'{name}' invalid enum: {val}")
                 case ["f", "ext", "crit"]:
                     if not 0 <= val <= 2:
@@ -170,9 +170,9 @@ class VlanTagOp:
     def is_untagged_default(self) -> bool:
         return (
             self.f_out_prio == 15 and
-            self.f_out_vid  == 4096 and
-            self.f_in_prio  == 15 and
-            self.f_in_vid   == 4096 and
+            self.f_out_vid == 4096 and
+            self.f_in_prio == 15 and
+            self.f_in_vid == 4096 and
             self.f_ext_crit == 0
         )
 
@@ -180,9 +180,9 @@ class VlanTagOp:
     def is_single_tagged_default(self) -> bool:
         return (
             self.f_out_prio == 15 and
-            self.f_out_vid  == 4096 and
-            self.f_in_prio  == 14 and
-            self.f_in_vid   == 4096 and
+            self.f_out_vid == 4096 and
+            self.f_in_prio == 14 and
+            self.f_in_vid == 4096 and
             self.f_ext_crit == 0
         )
 
@@ -190,9 +190,9 @@ class VlanTagOp:
     def is_double_tagged_default(self) -> bool:
         return (
             self.f_out_prio == 14 and
-            self.f_out_vid  == 4096 and
-            self.f_in_prio  == 14 and
-            self.f_in_vid   == 4096 and
+            self.f_out_vid == 4096 and
+            self.f_in_prio == 14 and
+            self.f_in_vid == 4096 and
             self.f_ext_crit == 0
         )
 
@@ -269,7 +269,7 @@ class VlanTagOp:
                 return False
             if self.f_out_prio < 8 and self.f_out_prio != tag.pcp:
                 return False
-            if self.f_out_vid != 4096 and self.f_out_vid != tag.vid:
+            if self.f_out_vid not in (4096, tag.vid):
                 return False
 
         # Inner Tag Match
@@ -279,7 +279,7 @@ class VlanTagOp:
                 return False
             if self.f_in_prio < 8 and self.f_in_prio != tag.pcp:
                 return False
-            if self.f_in_vid != 4096 and self.f_in_vid != tag.vid:
+            if self.f_in_vid not in (4096, tag.vid):
                 return False
 
         return True
@@ -289,11 +289,11 @@ class VlanTagOp:
             match prio:
                 case p if 0 <= p <= 7:
                     return p
-                case 8: # Copy from inner priority of received frame
+                case 8:   # Copy from inner priority of received frame
                     return frame.inner_tag.pcp if frame.inner_tag else 0
-                case 9: # Copy from outer priority of received frame
+                case 9:   # Copy from outer priority of received frame
                     return frame.outer_tag.pcp if frame.outer_tag else 0
-                case 10: # DSCP to P-bit mapping (Defaulting to 0)
+                case 10:  # DSCP to P-bit mapping (Defaulting to 0)
                     return 0
                 case _:
                     return 0
@@ -302,31 +302,31 @@ class VlanTagOp:
             match vid:
                 case v if 0 <= v <= 4094:
                     return v
-                case 4096: # Copy from inner VID of received frame
+                case 4096:  # Copy from inner VID of received frame
                     return frame.inner_tag.vid if frame.inner_tag else 0
-                case 4097: # Copy from outer VID of received frame
+                case 4097:  # Copy from outer VID of received frame
                     return frame.outer_tag.vid if frame.outer_tag else 0
                 case _:
                     return 0
 
         def resolve_tpid_dei(tpid_dei: int) -> tuple[int, int]:
             match tpid_dei:
-                case 0: # Copy TPID/DEI from inner
+                case 0:  # Copy TPID/DEI from inner
                     return (frame.inner_tag.tpid, frame.inner_tag.dei) if frame.inner_tag else (0x8100, 0)
-                case 1: # Copy TPID/DEI from outer
+                case 1:  # Copy TPID/DEI from outer
                     return (frame.outer_tag.tpid, frame.outer_tag.dei) if frame.outer_tag else (0x8100, 0)
-                case 2: # Use Output TPID, Copy DEI from inner
+                case 2:  # Use Output TPID, Copy DEI from inner
                     return (output_tpid, frame.inner_tag.dei if frame.inner_tag else 0)
-                case 3: # Use Output TPID, Copy DEI from outer
+                case 3:  # Use Output TPID, Copy DEI from outer
                     dei = frame.outer_tag.dei if frame.outer_tag else 0
                     return (output_tpid, dei)
-                case 4: # Set TPID 0x8100 (Implicit DEI=0 or preserved)
+                case 4:  # Set TPID 0x8100 (Implicit DEI=0 or preserved)
                     return (0x8100, 0)
-                case 6: # Use Output TPID, Set DEI = 0
+                case 6:  # Use Output TPID, Set DEI = 0
                     return (output_tpid, 0)
-                case 7: # Use Output TPID, Set DEI = 1
+                case 7:  # Use Output TPID, Set DEI = 1
                     return (output_tpid, 1)
-                case _: # Reserved or fallback
+                case _:  # Reserved or fallback
                     return (output_tpid, 0)
 
         if self.is_drop_treatment:
