@@ -1,0 +1,9 @@
+Extended VLAN table 2561
+------------------------
+Filter Outer		Filter Inner		Filter Other	Treatment Outer			Treatment Inner
+Prio	VID	TPIDDEI	Prio	VID	TPIDDEI	EthTyp	ExtCrit	TagRem	Prio	VID	TPIDDEI	Prio	VID	TPIDDEI
+14	4096	5	14	4096	0	0	0	3	15	0	0	15	4096	3
+15	4096	0	14	4096	5	0	0	3	15	0	0	15	4096	2
+15	4096	0	15	200	0	0	0	0	15	0	0	0	200	2
+15	4096	0	14	4096	0	0	0	0	15	0	0	15	0	0
+14	4096	0	14	4096	0	0	0	0	15	0	0	15	0	0
