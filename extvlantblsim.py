@@ -139,6 +139,9 @@ class VlanTagOp:
                     continue
 
     def __repr__(self) -> str:
+        if self.is_drop_treatment:
+            return "Dropped"
+
         vals = astuple(self)
 
         f = " ".join(f"{v:>4}" for v in vals[:8])
@@ -284,7 +287,7 @@ class VlanTagOp:
 
         return True
 
-    def transform(self, frame: EthFrame, output_tpid: int = 0x8100) -> EthFrame:
+    def apply_treatment(self, frame: EthFrame, output_tpid: int = 0x8100) -> EthFrame:
         def resolve_pcp(prio: int) -> int:
             match prio:
                 case p if 0 <= p <= 7:
@@ -350,7 +353,7 @@ class VlanTagOp:
                 *resolve_tpid_dei(self.t_in_tpid)
             ))
 
-        return EthFrame(tags=tuple(tags) if tags else frame.tags[self.tag_rem:])
+        return EthFrame(tags=(*tags, *frame.tags[self.tag_rem:]))
 
 
 class VlanTagOpTable:
@@ -395,7 +398,7 @@ class VlanTagOpTable:
     def process_frame(self, frame: EthFrame) -> Optional[EthFrame]:
         for op in self:
             if op.matches_filter(frame):
-                return op.transform(frame)
+                return op.apply_treatment(frame)
 
         return None
 
