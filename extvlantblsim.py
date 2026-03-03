@@ -441,7 +441,7 @@ class VlanClassifier:
         total_lik = 0.0
 
         for i, op in enumerate(table):
-            if op.is_single_tagged_filter and not (op.is_single_tagged_default or op.is_drop_treatment):
+            if op.is_single_tagged_filter and not (op.is_single_tagged_default or op.is_drop_treatment or op.f_in_vid >= 4094):
                 total_lik += (likelihood := calc_likelihood(op))
 
                 results.append({
