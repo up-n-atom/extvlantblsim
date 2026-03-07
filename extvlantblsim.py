@@ -420,7 +420,7 @@ class VlanTagOpTable:
         return table
 
     @classmethod
-    def from_table_stream(cls, stream: Iterator[str]) -> 'VlanTagOpTable':
+    def from_table_stream(cls, stream: List[str]) -> 'VlanTagOpTable':
         ops = []
 
         for line in stream:
