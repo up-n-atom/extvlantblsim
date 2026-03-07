@@ -151,6 +151,38 @@ class VlanTagOp:
 
     __str__ = __repr__
 
+    @classmethod
+    def from_bytes(cls, data: bytes) -> 'VlanTagOp':
+        if len(data) != 16:
+            raise ValueError(f"Expected 16 bytes, got {len(data)}")
+
+        import struct
+
+        # Unpack as four 32-bit big-endian unsigned integers
+        w1, w2, w3, w4 = struct.unpack(">IIII", data)
+
+        return cls(
+            # Word 1
+            f_out_prio  = (w1 >> 28) & 0xF,
+            f_out_vid   = (w1 >> 15) & 0x1FFF,
+            f_out_tpid  = (w1 >> 12) & 0x7,
+            # Word 2
+            f_in_prio   = (w2 >> 28) & 0xF,
+            f_in_vid    = (w2 >> 15) & 0x1FFF,
+            f_in_tpid   = (w2 >> 12) & 0x7,
+            f_ext_crit  = (w2 >> 4) & 0xFF,
+            f_eth_type  = w2 & 0xF,
+            # Word 3
+            tag_rem     = (w3 >> 30) & 0x3,
+            t_out_prio  = (w3 >> 16) & 0xF,
+            t_out_vid   = (w3 >> 3)  & 0x1FFF,
+            t_out_tpid  = w3 & 0x7,
+            # Word 4
+            t_in_prio   = (w4 >> 16) & 0xF,
+            t_in_vid    = (w4 >> 3)  & 0x1FFF,
+            t_in_tpid   = w4 & 0x7
+        )
+
     @property
     def is_untagged_filter(self) -> bool:
         return (
@@ -374,7 +406,21 @@ class VlanTagOpTable:
         return iter(self._ops)
 
     @classmethod
-    def from_stream(cls, stream) -> 'VlanTagOpTable':
+    def from_stream(cls, stream: Iterator[str]) -> 'VlanTagOpTable':
+        lines = list(stream)
+
+        if not lines:
+            return cls([])
+
+        table = cls.from_hex_stream(lines)
+
+        if not table:
+            table = cls.from_table_stream(lines)
+
+        return table
+
+    @classmethod
+    def from_table_stream(cls, stream: Iterator[str]) -> 'VlanTagOpTable':
         ops = []
 
         for line in stream:
@@ -392,6 +438,20 @@ class VlanTagOpTable:
                 vals[6], vals[7] = vals[7], vals[6]
 
                 ops.append(VlanTagOp(*vals))
+
+        return cls(ops)
+
+    @classmethod
+    def from_hex_stream(cls, lines: List[str]) -> 'VlanTagOpTable':
+        ops = []
+
+        for line in lines:
+            try:
+                raw_bytes = bytes.fromhex(line.replace("0x", "").replace("\\x", ""))
+            except ValueError:
+                pass
+            else:
+                ops.append(VlanTagOp.from_bytes(raw_bytes))
 
         return cls(ops)
 
