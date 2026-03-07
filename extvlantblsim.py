@@ -161,6 +161,10 @@ class VlanTagOp:
         # Unpack as four 32-bit big-endian unsigned integers
         w1, w2, w3, w4 = struct.unpack(">IIII", data)
 
+        # OLT deletion check
+        if w3 == 0xFFFFFFFF and w4 == 0xFFFFFFFF:
+            return None
+
         return cls(
             # Word 1
             f_out_prio  = (w1 >> 28) & 0xF,
